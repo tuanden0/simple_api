@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tuanden0/simple_api/internal/helpers"
 	"github.com/tuanden0/simple_api/internal/models"
 )
 
@@ -15,10 +16,15 @@ const ADDR string = ":8000"
 func main() {
 
 	// Disable Console Color, you don't need console color when writing the logs to file.
-	gin.DisableConsoleColor()
+	// gin.DisableConsoleColor()
 
 	// Logging to a file.
-	f, _ := os.Create("gin.log")
+	var f *os.File
+	if _, err := os.Stat("gin.log"); os.IsNotExist(err) {
+		f, _ = os.Create("gin.log")
+	} else {
+		f, _ = os.OpenFile("gin.log", os.O_APPEND, 0666)
+	}
 
 	// Use the following code if you need to write the logs to file and console at the same time.
 	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
@@ -29,9 +35,9 @@ func main() {
 	// By default gin.DefaultWriter = os.Stdout
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		// your custom format
-		return fmt.Sprintf("%s - [%s]\t\"%s\t%s\t%s\t%d\t%s\t%s\"\n",
-			param.ClientIP,
+		return fmt.Sprintf("[%s] - %s\t\"%s\t%s\t%s\t%d\t%s\t%s\"\n",
 			param.TimeStamp.Format(time.RFC1123),
+			param.ClientIP,
 			param.Method,
 			param.Path,
 			param.Request.Proto,
@@ -42,7 +48,18 @@ func main() {
 	}))
 	router.Use(gin.Recovery())
 
+	// Connect and Migrate Database
 	models.ConnectDatabase()
+
+	// Grouping route to versionning API
+	studentV1 := router.Group("/v1")
+	{
+		studentV1.GET("/students/", helpers.ListStudent)
+		studentV1.GET("/student/:id", helpers.RetrieveStudent)
+		studentV1.POST("/student", helpers.CreateStudent)
+		studentV1.PATCH("/student/:id", helpers.UpdateStudent)
+		studentV1.DELETE("/student/:id", helpers.DeleteStudent)
+	}
 
 	router.Run(ADDR)
 

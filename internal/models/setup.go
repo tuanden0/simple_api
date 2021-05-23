@@ -15,7 +15,7 @@ func ConnectDatabase() {
 	}
 
 	// Auto Migrate
-	db.AutoMigrate(&Department{}, &Course{}, &Group{}, &Student{})
+	db.AutoMigrate(&Student{})
 
 	DB = db
 }
