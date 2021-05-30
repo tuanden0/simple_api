@@ -1,4 +1,4 @@
-package helpers
+package services
 
 import (
 	"log"
@@ -7,10 +7,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tuanden0/simple_api/internal/models"
+	"github.com/tuanden0/simple_api/internal/repository"
 )
 
+type StudentService struct {
+	student repository.StudentObject
+}
+
+func NewStudentService(s repository.StudentObject) *StudentService {
+	return &StudentService{student: s}
+}
+
 // Create Student API
-func CreateStudent(c *gin.Context) {
+func (srv *StudentService) Create(c *gin.Context) {
 
 	// Create in object to bind user value
 	in := models.Student{}
@@ -27,7 +36,7 @@ func CreateStudent(c *gin.Context) {
 
 	// Prevent user insert "id" field
 	student := models.Student{Name: in.Name, GPA: in.GPA}
-	if err := models.DB.Create(&student).Error; err != nil {
+	if err := srv.student.Create(&student); err != nil {
 		log.Printf("unable to create student: %v\n", err.Error())
 		c.JSON(
 			http.StatusBadRequest,
@@ -45,12 +54,10 @@ func CreateStudent(c *gin.Context) {
 }
 
 // Retrieve Student API
-func RetrieveStudent(c *gin.Context) {
-	// Create object student to return
-	student := models.Student{}
-
+func (srv *StudentService) Retrieve(c *gin.Context) {
 	// Query student id with database
-	if err := models.DB.First(&student, c.Param("id")).Error; err != nil {
+	student, err := srv.student.Retrieve(c.Param("id"))
+	if err != nil {
 		// Handle error if unable to connect database
 		log.Printf("unable to get student: %v\n", err.Error())
 		c.JSON(
@@ -71,10 +78,9 @@ func RetrieveStudent(c *gin.Context) {
 }
 
 // Update Student API
-func UpdateStudent(c *gin.Context) {
+func (srv *StudentService) Update(c *gin.Context) {
 	// Create in object to bind value of user input
 	in := models.Student{}
-	student := models.Student{}
 
 	// Validate user input
 	if err := c.ShouldBindJSON(&in); err != nil {
@@ -86,18 +92,8 @@ func UpdateStudent(c *gin.Context) {
 		return
 	}
 
-	// Get student from database
-	if err := models.DB.Where("id = ?", c.Param("id")).First(&student).Error; err != nil {
-		log.Printf("unable to get student: %v\n", err.Error())
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
-		)
-		return
-	}
-
-	// Update student and avoid student update their id
-	if err := models.DB.Model(&student).Omit("id").Updates(&in).Error; err != nil {
+	student, err := srv.student.Update(c.Param("id"), in)
+	if err != nil {
 		log.Printf("unable to update student: %v\n", err.Error())
 		c.JSON(
 			http.StatusInternalServerError,
@@ -114,8 +110,8 @@ func UpdateStudent(c *gin.Context) {
 }
 
 // Delete Student API
-func DeleteStudent(c *gin.Context) {
-	if err := models.DB.Delete(&models.Student{}, c.Param("id")).Error; err != nil {
+func (srv *StudentService) Delete(c *gin.Context) {
+	if err := srv.student.Delete(c.Param("id")); err != nil {
 		log.Printf("unable to delete student: %v\n", err.Error())
 		c.JSON(
 			http.StatusInternalServerError,
@@ -131,35 +127,16 @@ func DeleteStudent(c *gin.Context) {
 }
 
 // List Student API
-func ListStudent(c *gin.Context) {
+func (srv *StudentService) List(c *gin.Context) {
 
-	// Create slice of student to return
-	students := []models.Student{}
+	// Get
 
-	// Value to pagination students list
-	size := 5
-	page := 1
+	// Default paging
+	page := mutatePagination(c)
 
-	p := c.Query("page")
-	if p != "" {
-		page, _ = strconv.Atoi(p)
-	}
+	students, err := srv.student.List(*page)
 
-	// Validate page
-	if page <= 0 {
-		log.Printf("page must be larger than 0")
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "page must be larger than 0"},
-		)
-		return
-	}
-
-	// Query and pagination student
-	if err := models.DB.
-		Limit(size).
-		Offset(size * (page - 1)).
-		Find(&students).Error; err != nil {
+	if err != nil {
 		// Handle error if unable to connect database
 		log.Printf("unable to get all students: %v\n", err.Error())
 		c.JSON(
@@ -171,5 +148,26 @@ func ListStudent(c *gin.Context) {
 
 	// Return students data
 	c.JSON(http.StatusOK, gin.H{"data": students})
+
+}
+
+// Mutate Pagination
+func mutatePagination(c *gin.Context) *repository.Pagination {
+	// Value to pagination students list
+	limit := 5
+	page := 1
+
+	// Parse paging data
+	p := c.Query("page")
+	if p != "" {
+		page, _ = strconv.Atoi(p)
+	}
+
+	// Validate page
+	if page <= 0 {
+		page = 1
+	}
+
+	return repository.NewPagination(page, limit)
 
 }

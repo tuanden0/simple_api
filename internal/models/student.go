@@ -5,3 +5,7 @@ type Student struct {
 	Name string  `json:"name,omitempty"`
 	GPA  float64 `json:"gpa,omitempty"`
 }
+
+func (Student) TableName() string {
+	return "student"
+}

@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuanden0/simple_api/internal/helpers"
 	"github.com/tuanden0/simple_api/internal/models"
+	"github.com/tuanden0/simple_api/internal/repository"
+	"github.com/tuanden0/simple_api/internal/services"
 )
 
 const ADDR string = ":8000"
@@ -49,16 +50,22 @@ func main() {
 	router.Use(gin.Recovery())
 
 	// Connect and Migrate Database
-	models.ConnectDatabase()
+	db := models.ConnectDatabase()
+
+	// Create Student repo
+	studentRepo := repository.NewStudentRepo(db)
+
+	// Create Student Service
+	studentSrv := services.NewStudentService(studentRepo)
 
 	// Grouping route to versionning API
 	studentV1 := router.Group("/v1")
 	{
-		studentV1.GET("/students/", helpers.ListStudent)
-		studentV1.GET("/student/:id", helpers.RetrieveStudent)
-		studentV1.POST("/student", helpers.CreateStudent)
-		studentV1.PATCH("/student/:id", helpers.UpdateStudent)
-		studentV1.DELETE("/student/:id", helpers.DeleteStudent)
+		studentV1.GET("/students/", studentSrv.List)
+		studentV1.GET("/student/:id", studentSrv.Retrieve)
+		studentV1.POST("/student", studentSrv.Create)
+		studentV1.PATCH("/student/:id", studentSrv.Update)
+		studentV1.DELETE("/student/:id", studentSrv.Delete)
 	}
 
 	router.Run(ADDR)
