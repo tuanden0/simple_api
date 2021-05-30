@@ -7,10 +7,15 @@ type StudentObject interface {
 	Retrieve(id string) (*models.Student, error)
 	Update(id string, in models.Student) (*models.Student, error)
 	Delete(id string) error
-	List(page Pagination) ([]*models.Student, error)
+	List(page Pagination, sort Sort) ([]*models.Student, error)
 }
 
 type Pagination struct {
 	Page  int
 	Limit int
+}
+
+type Sort struct {
+	Field string
+	ASC   string
 }

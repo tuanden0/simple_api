@@ -5,18 +5,25 @@ import (
 	"gorm.io/gorm"
 )
 
+var DB *gorm.DB
+
 func ConnectDatabase() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
 
-	if err != nil {
-		panic("failed to connect to database")
+	if DB == nil {
+		db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+
+		if err != nil {
+			panic("failed to connect to database")
+		}
+
+		// Auto Migrate
+		err = db.AutoMigrate(&Student{})
+		if err != nil {
+			panic("failed to migrate database")
+		}
+
+		DB = db
 	}
 
-	// Auto Migrate
-	err = db.AutoMigrate(&Student{})
-	if err != nil {
-		panic("failed to migrate database")
-	}
-
-	return db
+	return DB
 }

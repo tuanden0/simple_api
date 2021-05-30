@@ -131,10 +131,13 @@ func (srv *StudentService) List(c *gin.Context) {
 
 	// Get
 
-	// Default paging
+	// Get paging
 	page := mutatePagination(c)
 
-	students, err := srv.student.List(*page)
+	// Get sort
+	order_by := mutateSort(c)
+
+	students, err := srv.student.List(*page, *order_by)
 
 	if err != nil {
 		// Handle error if unable to connect database
@@ -168,6 +171,43 @@ func mutatePagination(c *gin.Context) *repository.Pagination {
 		page = 1
 	}
 
+	// Parse limit data
+	l := c.Query("limit")
+	if l != "" {
+		limit, _ = strconv.Atoi(l)
+	}
+
+	if limit <= 0 {
+		limit = 5
+	}
+
 	return repository.NewPagination(page, limit)
+
+}
+
+// Mutate Sort
+func mutateSort(c *gin.Context) *repository.Sort {
+	// Value to sort student list
+	field := "id"
+	isASC := true
+	s := "asc"
+
+	// Parse sort data
+	f := c.Query("order_by")
+	if f != "" {
+		field = f
+	}
+
+	// Parse isASC
+	i := c.Query("is_asc")
+	if i != "" {
+		isASC, _ = strconv.ParseBool(i)
+	}
+
+	if !isASC {
+		s = "desc"
+	}
+
+	return repository.NewSort(field, s)
 
 }

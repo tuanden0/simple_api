@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/tuanden0/simple_api/internal/models"
 	"gorm.io/gorm"
 )
@@ -10,16 +12,21 @@ type StudentMng struct {
 	objects *gorm.DB
 }
 
-// Using Singleton pattern to control how to action to db
 func NewStudentRepo(db *gorm.DB) StudentObject {
 	return &StudentMng{objects: db}
 }
 
-// Using Singleton patter to control Pagination
 func NewPagination(p int, l int) *Pagination {
 	return &Pagination{
 		Page:  p,
 		Limit: l,
+	}
+}
+
+func NewSort(f string, asc string) *Sort {
+	return &Sort{
+		Field: f,
+		ASC:   asc,
 	}
 }
 
@@ -73,15 +80,17 @@ func (m *StudentMng) Delete(id string) error {
 }
 
 // List Student
-func (m *StudentMng) List(page Pagination) ([]*models.Student, error) {
+func (m *StudentMng) List(page Pagination, sort Sort) ([]*models.Student, error) {
 	// Create slice of student to return
 	students := make([]*models.Student, 0)
 
 	// Query and pagination student
 	if err := m.objects.
+		Order(fmt.Sprintf("%v %v", sort.Field, sort.ASC)).
 		Limit(page.Limit).
 		Offset(page.Limit * (page.Page - 1)).
-		Find(&students).Error; err != nil {
+		Find(&students).
+		Error; err != nil {
 		// Handle error if unable to connect database
 		return students, err
 	}
