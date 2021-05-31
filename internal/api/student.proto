@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package api;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/tuanden0/simple_api/internal/api";
+
+service StudentService {
+  rpc Create(CreateRequest) returns (Student) {};
+  rpc Retrieve(RetrieveRequest) returns (Student);
+  rpc Update(UpdateRequest) returns (Student) {};
+  rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {};
+  rpc List(google.protobuf.Empty) returns (ListResponse);
+}
+
+message Student {
+  uint32 id = 1;
+  string name = 2;
+  float gpa = 3;
+}
+
+message CreateRequest {
+  string name = 1;
+  float gpa = 2;
+}
+
+message RetrieveRequest { uint32 id = 1; }
+
+message UpdateRequest {
+  uint32 id = 1;
+  string name = 2;
+  float gpa = 3;
+}
+
+message DeleteRequest { uint32 id = 1; }
+
+message ListResponse { repeated Student student = 1; }
